@@ -6,6 +6,7 @@ library(gbm)
 library(mcclust)
 library(rpart)
 library(rpart.plot)
+library(hash)
 
 
 df <- read.csv("./data/bank-full.csv", header = TRUE, sep = ";", fill = TRUE)
@@ -15,15 +16,15 @@ numeric <- c("age", "balance", "day", "duration", "campaign", "pdays", "previous
 relevant <- c("age", "balance", "marital", "loan", "duration", "previous", "poutcome")
 
 for (c in classes) {
-    if (c %in% relevant) {
+
         df[, c] <- as.factor(df[, c])
-    }
 }
 for (n in numeric) {
-    if (n %in% relevant) {
+
         df[, n] <- as.numeric(df[, n])
-    }
 }
+print(summary(df))
+
 nn <- function() {
     X <- model.matrix(gen_model(relevant),
                       c(df[relevant], df["y"])
@@ -43,8 +44,8 @@ controlledSliderUI <- function(id){
   ns = NS(id)
   conditionalPanel(
     condition = "input.params.includes('balance')",
-    sliderInput(ns("balance"), "Kontostand in $:", min = -20000, max = 150000, value = 1000),
-    numericInput(ns("value"), NULL, min = -20000, max = 150000, value = 1000),
+    sliderInput(ns("balance"), "Kontostand in $:", min = -20000, max = 150000, value = cParams[["balance"]]),
+    numericInput(ns("value"), NULL, min = -20000, max = 150000, value = cParams[["balance"]]),
   )
 }
 
@@ -71,6 +72,473 @@ controlledSlider <- function(input, output, session, value){
   return(reactiveRange)
 }
 
+# Vorgefertigte Kunden / Standard Parameter
+cParams <-hash()
+# default paramter
+cParams[["age"]] <- 40
+cParams[["marital"]] <- "married"
+cParams[["job"]] <- "unknown"
+cParams[["education"]] <- "unkown"
+cParams[["default"]] <- FALSE
+cParams[["housing"]] <- FALSE
+cParams[["loan"]] <- FALSE
+cParams[["balance"]] <- 1000
+cParams[["day"]] <- 1 
+cParams[["month"]] <- "jan"
+cParams[["pdays"]] <- 100
+cParams[["duration"]] <- 200
+cParams[["campaign"]] <- 2
+cParams[["previous"]] <- 1
+cParams[["contact"]] <- "unknown"
+cParams[["poutcome"]] <- "unknown"
+
+changeCustomer <- function(input, session){
+  ns = NS("balance")
+  #observe customer
+  observeEvent(input$customer, {
+    
+    #customer 0 / default customer
+    if (input$customer == "customer0"){
+      updateNumericInput(session, "age", value = 40)
+      updateSelectInput(session, "marital", selected = "married")
+      updateSelectInput(session, "job", selected = "unknown")
+      updateSelectInput(session, "education", selected = "unknown")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = FALSE)
+      updateCheckboxInput(session, "loan", value = FALSE)
+      updateSliderInput(session, ns("balance"), value = 1000)
+      updateNumericInput(session, ns("value"), value = 1000)
+      updateSelectInput(session, "day", selected = 1)
+      updateSelectInput(session, "month", selected = "jan")
+      updateNumericInput(session, "pdays", value = 100)
+      updateNumericInput(session, "duration", value = 200)
+      updateSliderInput(session, "campaign", value = 2)
+      updateSliderInput(session, "previous", value = 1)
+      updateSelectInput(session, "contact", selected = "unknown")
+      updateSelectInput(session, "poutcome", selected = "unknown")
+    }
+    
+    #customer 1
+    if (input$customer == "customer1"){
+    updateNumericInput(session, "age", value = 66)
+    updateSelectInput(session, "marital", selected = "single")
+    updateSelectInput(session, "job", selected = "services")
+    updateSelectInput(session, "education", selected = "primary")
+    updateCheckboxInput(session, "default", value = FALSE)
+    updateCheckboxInput(session, "housing", value = FALSE)
+    updateCheckboxInput(session, "loan", value = FALSE)
+    updateSliderInput(session, ns("balance"), value = 10000)
+    updateNumericInput(session, ns("value"), value = 10000)
+    updateSelectInput(session, "day", selected = 15)
+    updateSelectInput(session, "month", selected = "may")
+    updateNumericInput(session, "pdays", value = 303)
+    updateNumericInput(session, "duration", value = 577)
+    updateSliderInput(session, "campaign", value = 2)
+    updateSliderInput(session, "previous", value = 4)
+    updateSelectInput(session, "contact", selected = "cellular")
+    updateSelectInput(session, "poutcome", selected = "success")
+    }
+    
+    #customer 2
+    if (input$customer == "customer2"){
+      updateNumericInput(session, "age", value = 35)
+      updateSelectInput(session, "marital", selected = "married")
+      updateSelectInput(session, "job", selected = "admin")
+      updateSelectInput(session, "education", selected = "tertiary")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = TRUE)
+      updateCheckboxInput(session, "loan", value = FALSE)
+      updateSliderInput(session, ns("balance"), value = 30000)
+      updateNumericInput(session, ns("value"), value = 30000)
+      updateSelectInput(session, "day", selected = 13)
+      updateSelectInput(session, "month", selected = "apr")
+      updateNumericInput(session, "pdays", value = -1)
+      updateNumericInput(session, "duration", value = 0)
+      updateSliderInput(session, "campaign", value = 0)
+      updateSliderInput(session, "previous", value = 0)
+      updateSelectInput(session, "contact", selected = "unknown")
+      updateSelectInput(session, "poutcome", selected = "other")
+    }
+    
+    #customer 3
+    if (input$customer == "customer3"){
+      updateNumericInput(session, "age", value = 39)
+      updateSelectInput(session, "marital", selected = "divorced")
+      updateSelectInput(session, "job", selected = "management")
+      updateSelectInput(session, "education", selected = "tertiary")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = TRUE)
+      updateCheckboxInput(session, "loan", value = TRUE)
+      updateSliderInput(session, ns("balance"), value = 70563)
+      updateNumericInput(session, ns("value"), value = 70563)
+      updateSelectInput(session, "day", selected = 21)
+      updateSelectInput(session, "month", selected = "jun")
+      updateNumericInput(session, "pdays", value = 351)
+      updateNumericInput(session, "duration", value = 2431)
+      updateSliderInput(session, "campaign", value = 3)
+      updateSliderInput(session, "previous", value = 11)
+      updateSelectInput(session, "contact", selected = "telephone")
+      updateSelectInput(session, "poutcome", selected = "success")
+    }
+    
+    #customer 4
+    if (input$customer == "customer4"){
+      updateNumericInput(session, "age", value = 35)
+      updateSelectInput(session, "marital", selected = "married")
+      updateSelectInput(session, "job", selected = "admin")
+      updateSelectInput(session, "education", selected = "tertiary")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = TRUE)
+      updateCheckboxInput(session, "loan", value = FALSE)
+      updateSliderInput(session, ns("balance"), value = 30000)
+      updateNumericInput(session, ns("value"), value = 30000)
+      updateSelectInput(session, "day", selected = 13)
+      updateSelectInput(session, "month", selected = "apr")
+      updateNumericInput(session, "pdays", value = 31)
+      updateNumericInput(session, "duration", value = 0)
+      updateSliderInput(session, "campaign", value = 0)
+      updateSliderInput(session, "previous", value = 0)
+      updateSelectInput(session, "contact", selected = "unknown")
+      updateSelectInput(session, "poutcome", selected = "other")
+    }
+    
+    #customer 5
+    if (input$customer == "customer5"){
+      updateNumericInput(session, "age", value = 35)
+      updateSelectInput(session, "marital", selected = "married")
+      updateSelectInput(session, "job", selected = "admin")
+      updateSelectInput(session, "education", selected = "tertiary")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = TRUE)
+      updateCheckboxInput(session, "loan", value = FALSE)
+      updateSliderInput(session, ns("balance"), value = 30000)
+      updateNumericInput(session, ns("value"), value = 30000)
+      updateSelectInput(session, "day", selected = 13)
+      updateSelectInput(session, "month", selected = "apr")
+      updateNumericInput(session, "pdays", value = 31)
+      updateNumericInput(session, "duration", value = 0)
+      updateSliderInput(session, "campaign", value = 0)
+      updateSliderInput(session, "previous", value = 0)
+      updateSelectInput(session, "contact", selected = "unknown")
+      updateSelectInput(session, "poutcome", selected = "other")
+    }
+    
+    #customer 6
+    if (input$customer == "customer6"){
+      updateNumericInput(session, "age", value = 35)
+      updateSelectInput(session, "marital", selected = "married")
+      updateSelectInput(session, "job", selected = "admin")
+      updateSelectInput(session, "education", selected = "tertiary")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = TRUE)
+      updateCheckboxInput(session, "loan", value = FALSE)
+      updateSliderInput(session, ns("balance"), value = 30000)
+      updateNumericInput(session, ns("value"), value = 30000)
+      updateSelectInput(session, "day", selected = 13)
+      updateSelectInput(session, "month", selected = "apr")
+      updateNumericInput(session, "pdays", value = 31)
+      updateNumericInput(session, "duration", value = 0)
+      updateSliderInput(session, "campaign", value = 0)
+      updateSliderInput(session, "previous", value = 0)
+      updateSelectInput(session, "contact", selected = "unknown")
+      updateSelectInput(session, "poutcome", selected = "other")
+    }
+    
+    #customer 7
+    if (input$customer == "customer7"){
+      updateNumericInput(session, "age", value = 35)
+      updateSelectInput(session, "marital", selected = "married")
+      updateSelectInput(session, "job", selected = "admin")
+      updateSelectInput(session, "education", selected = "tertiary")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = TRUE)
+      updateCheckboxInput(session, "loan", value = FALSE)
+      updateSliderInput(session, ns("balance"), value = 30000)
+      updateNumericInput(session, ns("value"), value = 30000)
+      updateSelectInput(session, "day", selected = 13)
+      updateSelectInput(session, "month", selected = "apr")
+      updateNumericInput(session, "pdays", value = 31)
+      updateNumericInput(session, "duration", value = 0)
+      updateSliderInput(session, "campaign", value = 0)
+      updateSliderInput(session, "previous", value = 0)
+      updateSelectInput(session, "contact", selected = "unknown")
+      updateSelectInput(session, "poutcome", selected = "other")
+    }
+    
+    #customer 8
+    if (input$customer == "customer8"){
+      updateNumericInput(session, "age", value = 35)
+      updateSelectInput(session, "marital", selected = "married")
+      updateSelectInput(session, "job", selected = "admin")
+      updateSelectInput(session, "education", selected = "tertiary")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = TRUE)
+      updateCheckboxInput(session, "loan", value = FALSE)
+      updateSliderInput(session, ns("balance"), value = 30000)
+      updateNumericInput(session, ns("value"), value = 30000)
+      updateSelectInput(session, "day", selected = 13)
+      updateSelectInput(session, "month", selected = "apr")
+      updateNumericInput(session, "pdays", value = 31)
+      updateNumericInput(session, "duration", value = 0)
+      updateSliderInput(session, "campaign", value = 0)
+      updateSliderInput(session, "previous", value = 0)
+      updateSelectInput(session, "contact", selected = "unknown")
+      updateSelectInput(session, "poutcome", selected = "other")
+    }
+    
+    #customer 9
+    if (input$customer == "customer9"){
+      updateNumericInput(session, "age", value = 35)
+      updateSelectInput(session, "marital", selected = "married")
+      updateSelectInput(session, "job", selected = "admin")
+      updateSelectInput(session, "education", selected = "tertiary")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = TRUE)
+      updateCheckboxInput(session, "loan", value = FALSE)
+      updateSliderInput(session, ns("balance"), value = 30000)
+      updateNumericInput(session, ns("value"), value = 30000)
+      updateSelectInput(session, "day", selected = 13)
+      updateSelectInput(session, "month", selected = "apr")
+      updateNumericInput(session, "pdays", value = 31)
+      updateNumericInput(session, "duration", value = 0)
+      updateSliderInput(session, "campaign", value = 0)
+      updateSliderInput(session, "previous", value = 0)
+      updateSelectInput(session, "contact", selected = "unknown")
+      updateSelectInput(session, "poutcome", selected = "other")
+    }
+    
+    #customer 10
+    if (input$customer == "customer10"){
+      updateNumericInput(session, "age", value = 35)
+      updateSelectInput(session, "marital", selected = "married")
+      updateSelectInput(session, "job", selected = "admin")
+      updateSelectInput(session, "education", selected = "tertiary")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = TRUE)
+      updateCheckboxInput(session, "loan", value = FALSE)
+      updateSliderInput(session, ns("balance"), value = 30000)
+      updateNumericInput(session, ns("value"), value = 30000)
+      updateSelectInput(session, "day", selected = 13)
+      updateSelectInput(session, "month", selected = "apr")
+      updateNumericInput(session, "pdays", value = 31)
+      updateNumericInput(session, "duration", value = 0)
+      updateSliderInput(session, "campaign", value = 0)
+      updateSliderInput(session, "previous", value = 0)
+      updateSelectInput(session, "contact", selected = "unknown")
+      updateSelectInput(session, "poutcome", selected = "other")
+    }
+    
+    #customer 11
+    if (input$customer == "customer11"){
+      updateNumericInput(session, "age", value = 35)
+      updateSelectInput(session, "marital", selected = "married")
+      updateSelectInput(session, "job", selected = "admin")
+      updateSelectInput(session, "education", selected = "tertiary")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = TRUE)
+      updateCheckboxInput(session, "loan", value = FALSE)
+      updateSliderInput(session, ns("balance"), value = 30000)
+      updateNumericInput(session, ns("value"), value = 30000)
+      updateSelectInput(session, "day", selected = 13)
+      updateSelectInput(session, "month", selected = "apr")
+      updateNumericInput(session, "pdays", value = 31)
+      updateNumericInput(session, "duration", value = 0)
+      updateSliderInput(session, "campaign", value = 0)
+      updateSliderInput(session, "previous", value = 0)
+      updateSelectInput(session, "contact", selected = "unknown")
+      updateSelectInput(session, "poutcome", selected = "other")
+    }
+    
+    #customer 12
+    if (input$customer == "customer12"){
+      updateNumericInput(session, "age", value = 35)
+      updateSelectInput(session, "marital", selected = "married")
+      updateSelectInput(session, "job", selected = "admin")
+      updateSelectInput(session, "education", selected = "tertiary")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = TRUE)
+      updateCheckboxInput(session, "loan", value = FALSE)
+      updateSliderInput(session, ns("balance"), value = 30000)
+      updateNumericInput(session, ns("value"), value = 30000)
+      updateSelectInput(session, "day", selected = 13)
+      updateSelectInput(session, "month", selected = "apr")
+      updateNumericInput(session, "pdays", value = 31)
+      updateNumericInput(session, "duration", value = 0)
+      updateSliderInput(session, "campaign", value = 0)
+      updateSliderInput(session, "previous", value = 0)
+      updateSelectInput(session, "contact", selected = "unknown")
+      updateSelectInput(session, "poutcome", selected = "other")
+    }
+    
+    #customer 13
+    if (input$customer == "customer13"){
+      updateNumericInput(session, "age", value = 35)
+      updateSelectInput(session, "marital", selected = "married")
+      updateSelectInput(session, "job", selected = "admin")
+      updateSelectInput(session, "education", selected = "tertiary")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = TRUE)
+      updateCheckboxInput(session, "loan", value = FALSE)
+      updateSliderInput(session, ns("balance"), value = 30000)
+      updateNumericInput(session, ns("value"), value = 30000)
+      updateSelectInput(session, "day", selected = 13)
+      updateSelectInput(session, "month", selected = "apr")
+      updateNumericInput(session, "pdays", value = 31)
+      updateNumericInput(session, "duration", value = 0)
+      updateSliderInput(session, "campaign", value = 0)
+      updateSliderInput(session, "previous", value = 0)
+      updateSelectInput(session, "contact", selected = "unknown")
+      updateSelectInput(session, "poutcome", selected = "other")
+    }
+    
+    #customer 14
+    if (input$customer == "customer14"){
+      updateNumericInput(session, "age", value = 35)
+      updateSelectInput(session, "marital", selected = "married")
+      updateSelectInput(session, "job", selected = "admin")
+      updateSelectInput(session, "education", selected = "tertiary")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = TRUE)
+      updateCheckboxInput(session, "loan", value = FALSE)
+      updateSliderInput(session, ns("balance"), value = 30000)
+      updateNumericInput(session, ns("value"), value = 30000)
+      updateSelectInput(session, "day", selected = 13)
+      updateSelectInput(session, "month", selected = "apr")
+      updateNumericInput(session, "pdays", value = 31)
+      updateNumericInput(session, "duration", value = 0)
+      updateSliderInput(session, "campaign", value = 0)
+      updateSliderInput(session, "previous", value = 0)
+      updateSelectInput(session, "contact", selected = "unknown")
+      updateSelectInput(session, "poutcome", selected = "other")
+    }
+    
+    #customer 15
+    if (input$customer == "customer15"){
+      updateNumericInput(session, "age", value = 35)
+      updateSelectInput(session, "marital", selected = "married")
+      updateSelectInput(session, "job", selected = "admin")
+      updateSelectInput(session, "education", selected = "tertiary")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = TRUE)
+      updateCheckboxInput(session, "loan", value = FALSE)
+      updateSliderInput(session, ns("balance"), value = 30000)
+      updateNumericInput(session, ns("value"), value = 30000)
+      updateSelectInput(session, "day", selected = 13)
+      updateSelectInput(session, "month", selected = "apr")
+      updateNumericInput(session, "pdays", value = 31)
+      updateNumericInput(session, "duration", value = 0)
+      updateSliderInput(session, "campaign", value = 0)
+      updateSliderInput(session, "previous", value = 0)
+      updateSelectInput(session, "contact", selected = "unknown")
+      updateSelectInput(session, "poutcome", selected = "other")
+    }
+    
+    #customer 16
+    if (input$customer == "customer16"){
+      updateNumericInput(session, "age", value = 35)
+      updateSelectInput(session, "marital", selected = "married")
+      updateSelectInput(session, "job", selected = "admin")
+      updateSelectInput(session, "education", selected = "tertiary")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = TRUE)
+      updateCheckboxInput(session, "loan", value = FALSE)
+      updateSliderInput(session, ns("balance"), value = 30000)
+      updateNumericInput(session, ns("value"), value = 30000)
+      updateSelectInput(session, "day", selected = 13)
+      updateSelectInput(session, "month", selected = "apr")
+      updateNumericInput(session, "pdays", value = 31)
+      updateNumericInput(session, "duration", value = 0)
+      updateSliderInput(session, "campaign", value = 0)
+      updateSliderInput(session, "previous", value = 0)
+      updateSelectInput(session, "contact", selected = "unknown")
+      updateSelectInput(session, "poutcome", selected = "other")
+    }
+    
+    #customer 17
+    if (input$customer == "customer17"){
+      updateNumericInput(session, "age", value = 35)
+      updateSelectInput(session, "marital", selected = "married")
+      updateSelectInput(session, "job", selected = "admin")
+      updateSelectInput(session, "education", selected = "tertiary")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = TRUE)
+      updateCheckboxInput(session, "loan", value = FALSE)
+      updateSliderInput(session, ns("balance"), value = 30000)
+      updateNumericInput(session, ns("value"), value = 30000)
+      updateSelectInput(session, "day", selected = 13)
+      updateSelectInput(session, "month", selected = "apr")
+      updateNumericInput(session, "pdays", value = 31)
+      updateNumericInput(session, "duration", value = 0)
+      updateSliderInput(session, "campaign", value = 0)
+      updateSliderInput(session, "previous", value = 0)
+      updateSelectInput(session, "contact", selected = "unknown")
+      updateSelectInput(session, "poutcome", selected = "other")
+    }
+    
+    #customer 18
+    if (input$customer == "customer18"){
+      updateNumericInput(session, "age", value = 35)
+      updateSelectInput(session, "marital", selected = "married")
+      updateSelectInput(session, "job", selected = "admin")
+      updateSelectInput(session, "education", selected = "tertiary")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = TRUE)
+      updateCheckboxInput(session, "loan", value = FALSE)
+      updateSliderInput(session, ns("balance"), value = 30000)
+      updateNumericInput(session, ns("value"), value = 30000)
+      updateSelectInput(session, "day", selected = 13)
+      updateSelectInput(session, "month", selected = "apr")
+      updateNumericInput(session, "pdays", value = 31)
+      updateNumericInput(session, "duration", value = 0)
+      updateSliderInput(session, "campaign", value = 0)
+      updateSliderInput(session, "previous", value = 0)
+      updateSelectInput(session, "contact", selected = "unknown")
+      updateSelectInput(session, "poutcome", selected = "other")
+    }
+    
+    #customer 19
+    if (input$customer == "customer19"){
+      updateNumericInput(session, "age", value = 35)
+      updateSelectInput(session, "marital", selected = "married")
+      updateSelectInput(session, "job", selected = "admin")
+      updateSelectInput(session, "education", selected = "tertiary")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = TRUE)
+      updateCheckboxInput(session, "loan", value = FALSE)
+      updateSliderInput(session, ns("balance"), value = 30000)
+      updateNumericInput(session, ns("value"), value = 30000)
+      updateSelectInput(session, "day", selected = 13)
+      updateSelectInput(session, "month", selected = "apr")
+      updateNumericInput(session, "pdays", value = 31)
+      updateNumericInput(session, "duration", value = 0)
+      updateSliderInput(session, "campaign", value = 0)
+      updateSliderInput(session, "previous", value = 0)
+      updateSelectInput(session, "contact", selected = "unknown")
+      updateSelectInput(session, "poutcome", selected = "other")
+    }
+    
+    #customer 20
+    if (input$customer == "customer20"){
+      updateNumericInput(session, "age", value = 35)
+      updateSelectInput(session, "marital", selected = "married")
+      updateSelectInput(session, "job", selected = "admin")
+      updateSelectInput(session, "education", selected = "tertiary")
+      updateCheckboxInput(session, "default", value = FALSE)
+      updateCheckboxInput(session, "housing", value = TRUE)
+      updateCheckboxInput(session, "loan", value = FALSE)
+      updateSliderInput(session, ns("balance"), value = 30000)
+      updateNumericInput(session, ns("value"), value = 30000)
+      updateSelectInput(session, "day", selected = 13)
+      updateSelectInput(session, "month", selected = "apr")
+      updateNumericInput(session, "pdays", value = 31)
+      updateNumericInput(session, "duration", value = 0)
+      updateSliderInput(session, "campaign", value = 0)
+      updateSliderInput(session, "previous", value = 0)
+      updateSelectInput(session, "contact", selected = "unknown")
+      updateSelectInput(session, "poutcome", selected = "other")
+    }
+    })
+}
 
 
 
@@ -80,25 +548,32 @@ ui <- fluidPage(
                 fluidRow(
                          column(1,
                                 h4(strong("Bestandskunden"), align="center"),
-                                wellPanel(
-                                  selectInput("job", label = "Beruf:",
+                                  selectInput("customer", label = "Bestandskunden:", selectize = FALSE, size = "10", width = "400px",
                                               choices = list(
-                                                "Admin" = "admin.",
-                                                "Unbekannt" = "unknown",
-                                                "Arbeitslos" = "unemployed",
-                                                "Management" = "management",
-                                                "Hauswirtschaftshelfer" = "housemaid",
-                                                "Unternehmer" = "entrepreneur",
-                                                "Student" = "student",
-                                                "Handwerker" = "blue-collar",
-                                                "Selbststaendig" = "self-employed",
-                                                "Rentner" = "retired",
-                                                "Techniker" = "technician",
-                                                "Services" = "services"
+                                                "Standard" = "customer0",
+                                                "Kunde 1" = "customer1",
+                                                "Kunde 2" = "customer2",
+                                                "Kunde 3" = "customer3",
+                                                "Kunde 4" = "customer4",
+                                                "Kunde 5" = "customer5",
+                                                "Kunde 6" = "customer6",
+                                                "Kunde 7" = "customer7",
+                                                "Kunde 8" = "customer8",
+                                                "Kunde 9" = "customer9",
+                                                "Kunde 10" = "customer10",
+                                                "Kunde 11" = "customer11",
+                                                "Kunde 12" = "customer12",
+                                                "Kunde 13" = "customer13",
+                                                "Kunde 14" = "customer14",
+                                                "Kunde 15" = "customer15",
+                                                "Kunde 16" = "customer16",
+                                                "Kunde 17" = "customer17",
+                                                "Kunde 18" = "customer18",
+                                                "Kunde 19" = "customer19",
+                                                "Kunde 20" = "customer20"
                                               ),
-                                              selected = 1
+                                              selected = "customer0"
                                   ),
-                                ),
 
                          ),
                          column(2, offset = 1,
@@ -109,8 +584,8 @@ ui <- fluidPage(
                                                                  numericInput(
                                                                    inputId = "age", 
                                                                    label = "Alter:",
-                                                                   value = 0,
-                                                                   min = 0,
+                                                                   value = cParams[["age"]],
+                                                                   min = 18,
                                                                    max = 100,
                                                                    step = 1
                                                                    ),
@@ -124,7 +599,7 @@ ui <- fluidPage(
                                                 "Geschieden" = "divorced",
                                                 "Ledig" = "single"
                                               ),
-                                              selected = 1
+                                              selected = cParams[["marital"]]
                                   ),
                                 ),
                                 
@@ -134,7 +609,7 @@ ui <- fluidPage(
                                   condition = "input.params.includes('job')",
                                   selectInput("job", label = "Beruf:",
                                               choices = list(
-                                                "Admin" = "admin.",
+                                                "Admin" = "admin",
                                                 "Unbekannt" = "unknown",
                                                 "Arbeitslos" = "unemployed",
                                                 "Management" = "management",
@@ -147,7 +622,7 @@ ui <- fluidPage(
                                                 "Techniker" = "technician",
                                                 "Services" = "services"
                                               ),
-                                              selected = 1
+                                              selected = cParams[["job"]]
                                   ),
                                 ),
                                 
@@ -161,7 +636,7 @@ ui <- fluidPage(
                                                 "Regelschulabschluss" = "primary",
                                                 "Abgeschlossenes Studium" = "tertiary"
                                               ),
-                                              selected = 1
+                                              selected = cParams[["education"]]
                                   ),
                                 ),
                          ),
@@ -169,36 +644,36 @@ ui <- fluidPage(
                                  #   5 - default: has credit in default? (binary: "yes","no")
                                  conditionalPanel(
                                    condition = "input.params.includes('default')",
-                                   checkboxInput("default", "Gibt es ein Verzugskredit?"),
+                                   checkboxInput("default", "Gibt es ein Verzugskredit?", cParams[["default"]]),
                                  ),
                                  #   7 - housing: has housing loan? (binary: "yes","no")
                                  conditionalPanel(
                                    condition = "input.params.includes('housing')",
-                                   checkboxInput("housing", "Gibt es ein Baudarlehnen?"),
+                                   checkboxInput("housing", "Gibt es ein Baudarlehnen?", cParams[["housing"]]),
                                  ),
                                  #   8 - loan: has personal loan? (binary: "yes","no")
                                  conditionalPanel(
                                    condition = "input.params.includes('loan')",
-                                   checkboxInput("loan", "Besteht ein privat Kredit?"),
+                                   checkboxInput("loan", "Besteht ein privat Kredit?", cParams[["loan"]]),
                                  ),
                   controlledSliderUI("balance")
                             ),
-                  column(2,  h4(strong("Informationen zum letzten Kontakt"), align="center"),
-                         #  9 - day: last contact day of the month (numeric)
+                  column(2,  h4(strong("Informationen zum letzten Kontakt innerhalb der aktuellen Kampagne"), align="center"), h5(strong("Letzter Kontakt Versuch war am")),
+                         #  9 - day: last contact day of the month (numeric) current campaign
                          conditionalPanel(
                            condition = "input.params.includes('day')",
                            selectInput(
                              inputId = "day", 
-                             label="Letzter Kontakt (Tag des Monats):", 
+                             label="Tag des Monats:", 
                              choices = list(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31),
-                             selected = 1
+                             selected = cParams[["day"]]
                            )
                          ),
                          
-                         #  10 - month: last contact month of year (categorical: "jan", "feb", "mar", ..., "nov", "dec")
+                         #  10 - month: last contact month of year (categorical: "jan", "feb", "mar", ..., "nov", "dec") current campaign
                          conditionalPanel(
                            condition = "input.params.includes('month')",
-                           selectInput("month", label = "Letzter Kontakt (Monat):",
+                           selectInput("month", label = "Monat:",
                                        choices = list(
                                          "Januar" = "jan",
                                          "Februar" = "feb",
@@ -213,47 +688,48 @@ ui <- fluidPage(
                                          "November" = "nov",
                                          "Dezember" = "dec"
                                        ),
-                                       selected = 1
+                                       selected = cParams[["month"]]
                            ),
                          ),
                          
-                         
-                         #  11 - pdays: number of days that passed by after the client was last contacted from a previous campaign (numeric, -1 means client was not previously contacted)
-                         conditionalPanel(
-                           condition = "input.params.includes('pdays')",
-                           numericInput(inputId = "pdays", label = "Tage seit letztem Kontakt (-1 fuer kein Kontakt):", min = -1, max = 1000, value = 100)
-                         ),
-                         
-                         #  12 - duration: last contact duration, in seconds (numeric)
+                         #  11 - duration: last contact duration, in seconds (numeric) current campaign
                          conditionalPanel(
                            condition = "input.params.includes('duration')",
-                           numericInput(inputId = "duration", label = "Gespraechsdauer des letzten Kontakt in Sekunden):", min = 0, max = 1000, value = 35),
-                         ),
-                        ),
-                  column(2 , h4(strong("Weitere Informationen"), align="center"),
-                         #  13 - campaign: number of contacts performed during this campaign and for this client (numeric, includes last contact)
-                         conditionalPanel(
-                           condition = "input.params.includes('campaign')",
-                           sliderInput("campaign", "Anzahl der Kontakte in der aktuellen Kampagne", min = 0, max = 20, value = 1),
+                           numericInput(inputId = "duration", label = "Gespraechsdauer des letzten Kontakt in Sekunden):", min = 0, max = 5000, value = cParams[["duration"]]),
                          ),
                          
-                         #  14 - previous: number of contacts performed before this campaign and for this client (numeric)
-                         conditionalPanel(
-                           condition = "input.params.includes('previous')",
-                           sliderInput("previous", "Anzahl der Kontakte insgesamt", min = 0, max = 20, value = 1),
-                         ),
                          
-                         #   15 - contact: contact communication type (categorical: "unknown","telephone","cellular") 
+                         #   12 - contact: contact communication type (categorical: "unknown","telephone","cellular") 
                          conditionalPanel(
                            condition = "input.params.includes('contact')",
                            selectInput("contact", label = "Wie wurde der Kontakt aufgenommen?",
                                        choices = list(
-                                         "Unnbekannt" = "unknown",
+                                         "Unbekannt" = "unknown",
                                          "Festnetz" = "telephone",
                                          "Handy" = "cellular"
                                        ),
-                                       selected = 1
+                                       selected = cParams[["contact"]]
                            ),
+                         ),
+                        ),
+                  column(2 , h4(strong("Weitere Informationen"), align="center"),
+                         
+                         #  13 - pdays: number of days that passed by after the client was last contacted from a previous campaign (numeric, -1 means client was not previously contacted)
+                         conditionalPanel(
+                           condition = "input.params.includes('pdays')",
+                           numericInput(inputId = "pdays", label = "Tage seit letztem Kontakt der vorherigen Kampagne (-1 fuer kein Kontakt):", min = -1, max = 1000, value = cParams[["pdays"]])
+                         ),
+                         
+                         #  14 - campaign: number of contacts performed during this campaign and for this client (numeric, includes last contact)
+                         conditionalPanel(
+                           condition = "input.params.includes('campaign')",
+                           sliderInput("campaign", "Anzahl der Kontakte in der aktuellen Kampagne", min = 0, max = 100, value = cParams[["campaign"]]),
+                         ),
+                         
+                         #  15 - previous: number of contacts performed before this campaign and for this client (numeric)
+                         conditionalPanel(
+                           condition = "input.params.includes('previous')",
+                           sliderInput("previous", "Anzahl der Kontakte insgesamt", min = 0, max = 100, value = cParams[["previous"]]),
                          ),
                          
                          
@@ -267,7 +743,7 @@ ui <- fluidPage(
                                          "Nicht erfolgreich" = "failure",
                                          "Erfolgreich" = "success"
                                        ),
-                                       selected = 1
+                                       selected = cParams[["poutcome"]]
                            ),
                          ),
                   ),
@@ -278,7 +754,18 @@ ui <- fluidPage(
                 )
   )
 server <- function(input, output, session) {
+ #input_test <- "customer5"
+ #observeEvent(input$customer,{
+ #  input_test$customer <- input$customer
+ #  print(input_test)
+ #})
+ #
+  #observeEvent(input$value,{
+  #  reactiveRange$value <- as.numeric(input$value)})
+  
+  
   range <- callModule(controlledSlider, "balance", 1000)
+  changeCustomer(input, session)
     model <- reactive({})
     prognose <- reactive({
         XPred <- df[, input$params]
