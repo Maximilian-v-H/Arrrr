@@ -7,77 +7,11 @@ library(mcclust)
 library(rpart)
 library(rpart.plot)
 
-gen_model <- function(params) {
-    return(as.formula(paste("y ~ ", paste(params, collapse = " + "))))
-}
-
-setClass("tree", slots = list(left = "tree", right = "tree", value = "character")
-
-id3 <- function(examples, attributes, parent_examples) {
-    if empty(examples) {
-        return(PLURALITY_VAL(parent_examples))
-    } else if (same_class(examples)) {
-        return(get_class(examples))
-    } else if (empty(attributes)) {
-        return(PLURALITY_VAL(examples))
-    } else {
-        A <- argmax(IMPORTANCE(a, examples))
-        tree <- a new decision tree with root test A
-        for (vk ∈ A) {
-            exs <- {e|e ∈ examples ∧ e.A = vk}
-            subtree <- DT-LEARNING(exs, attributes − A, examples)
-            add a branch to tree with label (A = vk) and subtree subtree
-        }
-        return tree
-    }
-}
-
-
-
-accuracy_tune <- function(fit) {
-    predict_unseen <- predict(fit, data_test, type = "class")
-    table_mat <- table(data_test$y, predict_unseen)
-    accuracy_Test <- sum(diag(table_mat)) / sum(table_mat)
-    accuracy_Test
-}
-create_train_test <- function(data, size = 0.8, train = TRUE) {
-    n_row <- nrow(data)
-    total_row <- size * n_row
-    train_sample <- 1:total_row
-    if (train == TRUE) {
-        return(data[train_sample, ])
-    } else {
-        return(data[-train_sample, ])
-    }
-}
 df <- read.csv("./data/bank-full.csv", header = TRUE, sep = ";", fill = TRUE)
 params <- c("job", "marital", "education", "default", "housing", "loan", "contact", "month", "poutcome", "age", "balance", "day", "duration", "campaign", "pdays", "previous")
 classes <- c("job", "marital", "education", "default", "housing", "loan", "contact", "month", "poutcome", "y")
 numeric <- c("age", "balance", "day", "duration", "campaign", "pdays", "previous")
 relevant <- c("age", "balance", "marital", "loan", "duration", "previous", "poutcome")
-for (c in classes) {
-    df[, c] <- as.factor(df[, c])
-}
-for (n in numeric) {
-    df[, n] <- as.numeric(df[, n])
-}
-data_train <- create_train_test(df, 0.8, train = TRUE)
-data_test <- create_train_test(df, 0.8, train = FALSE)
-control <- rpart.control(minsplit = 4,
-                         minbucket = round(5 / 3),
-                         maxdepth = 3,
-                         cp = 0)
-tune_fit <- rpart(y~., data = data_train, method = "class", control = control)
-accuracy_tune(tune_fit)
-control <- rpart.control(
-minsplit = 6,
-minbucket = round(5 / 3),
-maxdepth = 9,
-cp = 0.01
-)
-tune_fit <- rpart(y~., data = data_train, method = "class", control = control)
-accuracy_tune(tune_fit)
-rpart.plot(tune_fit, extra = 106)
 
 for (c in classes) {
     if (c %in% relevant) {
