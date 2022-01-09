@@ -13,7 +13,7 @@ df <- read.csv("./data/bank-full.csv", header = TRUE, sep = ";", fill = TRUE)
 users <- read.csv("./users.csv", header = TRUE, sep = ";", fill = TRUE)
 rownames(users) <- c(users[["name"]])
 users <- subset(users, select = -c(name))
-params <- c("job", "marital", "education", "default", "housing", "loan", "contact", "month", "poutcome", "age", "balance", "day", "duration", "campaign", "pdays", "previous")
+params <- c("job", "marital", "education", "default", "housing", "loan", "contact", "month", "poutcome", "age", "day", "duration", "campaign", "pdays", "previous")
 classes <- c("job", "marital", "education", "default", "housing", "loan", "contact", "month", "poutcome", "y")
 numeric <- c("age", "balance", "day", "duration", "campaign", "pdays", "previous")
 
@@ -28,16 +28,6 @@ gen_model <- function(params) {
     return(as.formula(paste("y ~ ", paste(params, collapse = " + "))))
 }
 
-nn <- function() {
-    X <- model.matrix(gen_model(params),
-                      df
-    )
-    X <- X[, -1]   # entferne den Intercept
-    y <- as.factor(df[, "y"])
-    model <- neuralnetwork(X, y, hidden.layers = c(4, 3), regression = FALSE,
-                           loss.type = "log", learn.rates = 1e-04, n.epochs = 1,
-                           verbose = TRUE)
-}
 
 controlledSliderUI <- function(id) {
     ns = NS(id)
@@ -77,12 +67,12 @@ cParams <- hash()
 cParams[["age"]] <- 40
 cParams[["marital"]] <- "married"
 cParams[["job"]] <- "unknown"
-cParams[["education"]] <- "unkown"
+cParams[["education"]] <- "unknown"
 cParams[["default"]] <- FALSE
 cParams[["housing"]] <- FALSE
 cParams[["loan"]] <- FALSE
 cParams[["balance"]] <- 1000
-cParams[["day"]] <- 1 
+cParams[["day"]] <- 1
 cParams[["month"]] <- "jan"
 cParams[["pdays"]] <- 100
 cParams[["duration"]] <- 200
@@ -134,7 +124,6 @@ changeCustomer <- function(input, session){
                          updateSelectInput(session, "contact", selected = users[input$customer, "contact"])
                          updateSelectInput(session, "poutcome", selected = users[input$customer, "poutcome"])
                      }
-
                      })
 }
 
@@ -150,7 +139,7 @@ ui <- fluidPage(
 
                                 ),
                          column(2, offset = 1,
-                                h4(strong("Persoenliche Informationen"), align="center"),
+                                h4(strong("Persönliche Informationen"), align="center"),
                                 #   1 - age (numeric)
                                 numericInput(
                                              inputId = "age", 
@@ -182,7 +171,7 @@ ui <- fluidPage(
                                                            "Unternehmer" = "entrepreneur",
                                                            "Student" = "student",
                                                            "Handwerker" = "blue-collar",
-                                                           "Selbststaendig" = "self-employed",
+                                                           "Selbstständig" = "self-employed",
                                                            "Rentner" = "retired",
                                                            "Techniker" = "technician",
                                                            "Services" = "services"
@@ -208,8 +197,8 @@ ui <- fluidPage(
                                 #   7 - housing: has housing loan? (binary: "yes","no")
                                 checkboxInput("housing", "Gibt es ein Baudarlehnen?", cParams[["housing"]]),
                                 #   8 - loan: has personal loan? (binary: "yes","no")
-                                checkboxInput("loan", "Besteht ein privat Kredit?", cParams[["loan"]]),
-                                controlledSliderUI("balance")
+                                checkboxInput("loan", "Besteht ein privat Kredit?", cParams[["loan"]])
+                                ,controlledSliderUI("balance")
                                 ),
                          column(2,
                                 h4(strong("Informationen zum letzten Kontakt innerhalb der aktuellen Kampagne"), align="center"),
@@ -227,7 +216,7 @@ ui <- fluidPage(
                                             choices = list(
                                                            "Januar" = "jan",
                                                            "Februar" = "feb",
-                                                           "Maerz" = "mar",
+                                                           "März" = "mar",
                                                            "April" = "apr",
                                                            "Mai" = "may",
                                                            "Juni" = "jun",
@@ -244,7 +233,7 @@ ui <- fluidPage(
                                 #  11 - duration: last contact duration, in seconds (numeric) current campaign
                                 numericInput(
                                              inputId = "duration", 
-                                             label = "Gespraechsdauer des letzten Kontakt in Sekunden):", 
+                                             label = "Gesprächsdauer des letzten Kontakt in Sekunden):", 
                                              min = 0, 
                                              max = 5000, 
                                              value = cParams[["duration"]]),
@@ -259,14 +248,14 @@ ui <- fluidPage(
                                                            "Handy" = "cellular"
                                                            ),
                                             selected = cParams[["contact"]]
-                                            )
+                                )
                                 ),
                          column(2 , h4(strong("Weitere Informationen"), align="center"),
 
                                 #  13 - pdays: number of days that passed by after the client was last contacted from a previous campaign (numeric, -1 means client was not previously contacted)
                                 numericInput(
                                              inputId = "pdays", 
-                                             label = "Tage seit letztem Kontakt der vorherigen Kampagne (-1 fuer kein Kontakt):", 
+                                             label = "Tage seit letztem Kontakt der vorherigen Kampagne (-1 für kein Kontakt):", 
                                              min = -1, 
                                              max = 1000, 
                                              value = cParams[["pdays"]]),
@@ -291,62 +280,61 @@ ui <- fluidPage(
                                 ),
                          ),
                 fluidRow(
-                         titlePanel("Auskunft ueber den Kunden:"),
+                         titlePanel("Auskunft über den Kunden:"),
                          textOutput("Prognose"),
-                         plotOutput("Verteilung")
+                         plotlyOutput("Verteilung")
                 )
 )
 server <- function(input, output, session) {
-    #input_test <- "customer5"
-    #observeEvent(input$customer,{
-    #  input_test$customer <- input$customer
-    #  print(input_test)
-    #})
-    #
-    #observeEvent(input$value,{
-    #  reactiveRange$value <- as.numeric(input$value)})
-
-
     range <- callModule(controlledSlider, "balance", 1000)
     changeCustomer(input, session)
     model <- reactive({
-        nn()
+        X <- model.matrix(gen_model(params),
+                          df
+        )
+        X <- X[, -1]   # entferne den Intercept
+        y <- as.factor(df[, "y"])
+        model <- neuralnetwork(X, y, hidden.layers = c(4, 3), regression = FALSE,
+                               loss.type = "log", learn.rates = 1e-04, n.epochs = 1,
+                               verbose = TRUE)
+        model
     })
     prognose <- reactive({
         model <- model()
-        XPred <- df[, input$params]
-        for (el in input$params) {
+        for (el in params) {
             if (el %in% classes) {
                 if (typeof(reactiveValuesToList(input)[[el]]) == "logical") {
-                    XPred[1, el] <- as.factor(ifelse(reactiveValuesToList(input)[[el]] == FALSE, "no", "yes"))
+                    df[nrow(df) + 1, el] <- as.factor(ifelse(reactiveValuesToList(input)[[el]] == FALSE, "no", "yes"))
                 } else {
-                    XPred[1, el] <- as.factor(reactiveValuesToList(input)[[el]])
+                    df[nrow(df) + 1, el] <- as.factor(reactiveValuesToList(input)[[el]])
                 }
             }
             if (el %in% numeric) {
-                XPred[1, el] <- as.numeric(reactiveValuesToList(input)[[el]])
+                if (el == "balance") {
+                    df[nrow(df) + 1, el] <- NS(as.numeric(reactiveValuesToList(input)[["balance-balance"]]))
+                } else {
+                    df[nrow(df) + 1, el] <- as.numeric(reactiveValuesToList(input)[[el]])
+                }
             }
         }
-        X.neu <- model.matrix(gen_model(input$params), XPred)
+        X.neu <- model.matrix(gen_model(params), df[nrow(df) + 1, ])
         X.neu <- X.neu[, -1]   # entferne den Intercept
         prognosevektor <- predict(model, X.neu)$predictions
         prog <- prognosevektor[1]
         prog
     })
-    output$Verteilung <- renderPlot({
-        plot(model())
-        # prog <- prognose()
-        # X <- df[, input$params]
-        # X <- model.matrix(gen_model(input$params), X)
+    output$Verteilung <- renderPlotly({
+        # X <- model.matrix(gen_model(params), df)
         # X <- X[, -1]
         # y <- as.factor(df[, "y"])
         # abweichungen <- y - predict(model, X)$predictions
-        # hist(prog + abweichungen, col = "blue", main = "Verteilung der Quadratmetermieten")
+        # # hist(prog + abweichungen, col = "blue", main = "Verteilung der Quadratmetermieten")
+        # # Verteilung <- plot_ly(x = prog, y = abweichungen, type = "histogram")
+        # plot(abweichungen)
     })
-    output$Prognose <- renderPrint({
+    output$Prognose <- renderText({
         prog <- prognose()
-        Ausgabe <- paste("Your score: ", prog)
-        Ausgabe
+        Prognose <- paste("Your score: ", prog)
     })
 }
 shinyApp(ui, server)
