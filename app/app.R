@@ -1,10 +1,6 @@
 library(shiny)
-library(shinyWidgets)
-library(plotly)
-library(ANN2)
-library(gbm)
 library(hash)
-
+library(plotly)
 
 df <- read.csv("./data/bank-full.csv", header = TRUE, sep = ";", fill = TRUE, stringsAsFactors = FALSE)
 users <- read.csv("./data/users.csv", header = TRUE, sep = ";", fill = TRUE, stringsAsFactors = FALSE)
@@ -12,6 +8,9 @@ rownames(users) <- c(users[["name"]])
 users <- subset(users, select = -c(name))
 params <- c("job", "marital", "education", "default", "housing", "loan", "balance", "contact", "month", "poutcome", "age", "day", "duration", "campaign", "pdays", "previous")
 classes <- c("job", "marital", "education", "default", "housing", "loan", "contact", "month", "poutcome", "y")
+
+multi <- c("job", "marital", "education", "contact", "month", "poutcome")
+bin <- c("default", "housing", "loan")
 numeric <- c("age", "balance", "day", "duration", "campaign", "pdays", "previous")
 
 for (c in classes) {
@@ -25,49 +24,62 @@ gen_model <- function(params) {
     return(as.formula(paste("y ~ ", paste(params, collapse = " + "))))
 }
 
-create_train_test <- function(data, size = 0.8, train = TRUE) {
-    n_row <- nrow(data)
-    print(n_row)
-    total_row <- size * n_row
-    train_sample <- 1:total_row
-    if (train == TRUE) {
-        return(data[train_sample, ])
-    } else {
-        return(data[-train_sample, ])
-    }
-}
-
-acc <- function(old, new) {
-    same <- 0
-    for(i in 1:length(old)) {
-        if (old[i] == new[i]) {
-            same <- same + 1
+translate <- function(data) {
+    rdata <- c()
+    for (i in 1:length(data)) {
+        if (data[i] == "job") {
+            rdata <- append(rdata, "Beruf")
+        }
+        if (data[i] == "marital") {
+            rdata <- append(rdata, "Ehestatus")
+        }
+        if (data[i] == "education") {
+            rdata <- append(rdata, "Bildung")
+        }
+        if (data[i] == "default") {
+            rdata <- append(rdata, "Verzugskredit")
+        }
+        if (data[i] == "housing") {
+            rdata <- append(rdata, "Baudarlehen")
+        }
+        if (data[i] == "loan") {
+            rdata <- append(rdata, "Privat Kredit")
+        }
+        if (data[i] == "balance") {
+            rdata <- append(rdata, "Kontostand")
+        }
+        if (data[i] == "contact") {
+            rdata <- append(rdata, "Kommunikationsart")
+        }
+        if (data[i] == "month") {
+            rdata <- append(rdata, "Kommunikationsmonat")
+        }
+        if (data[i] == "poutcome") {
+            rdata <- append(rdata, "Kampagnenergebnis")
+        }
+        if (data[i] == "age") {
+            rdata <- append(rdata, "Alter")
+        }
+        if (data[i] == "day") {
+            rdata <- append(rdata, "Kommunikationstag")
+        }
+        if (data[i] == "duration") {
+            rdata <- append(rdata, "Kommunikationsdauer")
+        }
+        if (data[i] == "campaign") {
+            rdata <- append(rdata, "Anzahl der Kontakte insgesamt")
+        }
+        if (data[i] == "pdays") {
+            rdata <- append(rdata, "Tage seit letztem Kontakt")
+        }
+        if (data[i] == "previous") {
+            rdata <- append(rdata, "Anzahl der Kontakte in der aktuellen Kampagne")
         }
     }
-    return(same / length(old))
+    return(rdata)
 }
 
-train    <- create_train_test(df, 0.8, TRUE)
-test     <- create_train_test(df, 0.8, FALSE)
-X <- model.matrix(gen_model(params), train)
-X <- X[, -1]
-y <- as.factor(train[, "y"])
-summary(train)
-model <- neuralnetwork(X = X,
-                       y = y,
-                       hidden.layers = c(4, 3),
-                       regression = FALSE,
-                       loss.type = "log",
-                       learn.rates = 1e-03,
-                       n.epochs = 1,
-                       verbose = TRUE)
-X_test <- model.matrix(gen_model(params), test)
-X_test <- X_test[, -1]
-prognosevektor <- predict(model, X_test)$predictions
-print(table(unlist(prognosevektor)))
-print(table(unlist(test[, "y"])))
-print(acc(test[, "y"], prognosevektor))
-
+model <- glm(gen_model(params), data = as.data.frame(df), binomial(link = "logit"))
 
 # Vorgefertigte Kunden / Standard Parameter
 cParams <- hash()
@@ -244,8 +256,10 @@ ui <- fluidPage(
                          ),
                 fluidRow(
                          titlePanel("Auskunft über den Kunden:"),
-                         textOutput("Prognose"),
-                         plotlyOutput("Verteilung")
+                         splitLayout(cellWidths = c("15%", "85%"),
+                                     wellPanel(uiOutput("Prognose"), style = "padding: 100px; background: black; border-radius: 50%;"),
+                                     plotlyOutput("Verteilung")
+                         )
                 )
 )
 server <- function(input, output, session) {
@@ -297,19 +311,8 @@ server <- function(input, output, session) {
                          updateSelectInput(session, "poutcome", selected = users[input$customer, "poutcome"])
                      }
 })
-    # model <- reactive({
-    #     X <- model.matrix(gen_model(params),
-    #                       df
-    #     )
-    #     X <- X[, -1]   # entferne den Intercept
-    #     y <- as.factor(df[, "y"])
-    #     model <- neuralnetwork(X, y, hidden.layers = c(4, 3), regression = FALSE,
-    #                            loss.type = "log", learn.rates = 1e-04, n.epochs = 1,
-    #                            verbose = TRUE)
-    #     model
-    # })
     prognose <- reactive({
-        pred <- train[params]
+        pred <- df[params]
         for (el in params) {
             if (el %in% classes) {
                 if (typeof(reactiveValuesToList(input)[[el]]) == "logical") {
@@ -322,28 +325,66 @@ server <- function(input, output, session) {
                 pred[1, el] <- as.numeric(reactiveValuesToList(input)[[el]])
             }
         }
-        X_test <- model.matrix(gen_model(params), pred)
-        X_test <- X_test[, -1]
-        prognosevektor <- predict(model, X_test)
-        print(table(unlist(prognosevektor$predictions)))
-        print(table(unlist(test[, "y"])))
-        prob <- prognosevektor$probabilities[1]
-        prog <- prognosevektor$predictions[1]
-        return(c(prog, prob))
+        pred <- predict(model, pred[1, ])
+        pred
     })
+
+    plot_val <- reactive({
+        X_plot <- params
+        y_plot <- c()
+        for (i in 1:length(X_plot)) {
+            if (X_plot[i] %in% multi) {
+                name <- paste(X_plot[i], reactiveValuesToList(input)[[X_plot[i]]], sep = "")
+                if (name %in% rownames(summary(model)$coefficients)) {
+                    y_plot <- append(y_plot, exp(summary(model)$coefficients[name, 1]))
+                } else {
+                    y_plot <- append(y_plot, exp(1))
+                }
+            } else if (X_plot[i] %in% bin) {
+                if (reactiveValuesToList(input)[[X_plot[i]]] == TRUE) {
+                    name <- paste(X_plot[i], "yes", sep = "")
+                } else {
+                    name <- paste(X_plot[i], "no", sep = "")
+                }
+                if (name %in% rownames(summary(model)$coefficients)) {
+                    y_plot <- append(y_plot, exp(summary(model)$coefficients[name, 1]))
+                } else {
+                    y_plot <- append(y_plot, exp(1))
+                }
+            } else if (X_plot[i] %in% numeric) {
+                y_plot <- append(y_plot, exp(summary(model)$coefficients[X_plot[i], 1]))
+            }
+        }
+        list(x = X_plot, y = y_plot)
+    })
+
+    plot_val_t <- plot_val %>% debounce(1000)
+
     output$Verteilung <- renderPlotly({
-        # X <- model.matrix(gen_model(params), df)
-        # X <- X[, -1]
-        # y <- as.factor(df[, "y"])
-        # abweichungen <- y - predict(model, X)$predictions
-        # # hist(prog + abweichungen, col = "blue", main = "Verteilung der Quadratmetermieten")
-        # # Verteilung <- plot_ly(x = prog, y = abweichungen, type = "histogram")
-        # plot(abweichungen)
+        p <- prognose()
+        prog <- exp(p) / (1 + exp(p))
+        if (prog <= 1 && prog >= 0) {
+            col <- (prog * 110) + 20
+        } else {
+            col <- 0
+        }
+        fig <- plot_ly(x = translate(plot_val_t()$x), y = plot_val_t()$y, type = 'bar', name = 'Primary Product', marker = list(color = paste('hsl(', col, ',100%,50%)')))
+        fig <- fig %>% layout(xaxis = list(title = "", tickangle = -45),
+                              yaxis = list(title = "Ausschlagskraft"),
+                              margin = list(b = 100),
+                              barmode = 'group'
+        )
+        fig
     })
-    output$Prognose <- renderText({
-        progprob <- prognose()
-        realProb <- 1 - as.numeric(progprob[[2]])
-        Prognose <- paste("Your score: ", progprob[[1]], "     Prob: ", realProb)
+    output$Prognose <- renderUI({
+        p <- prognose()
+        prog <- exp(p) / (1 + exp(p))
+        if (prog <= 1 && prog >= 0) {
+            col <- (prog * 110) + 20
+        } else {
+            col <- 0
+        }
+        Prognose <- tags$h1(paste(round(prog, digits = 3), "%"), style = paste("color: hsl(", col, ",100%,50%);"))
     })
 }
 shinyApp(ui, server)
