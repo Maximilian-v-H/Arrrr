@@ -137,7 +137,7 @@ ui <- fluidPage(
                                 #                                       "blue-collar","self-employed","retired","technician","services")
                                 selectInput(inputId = "job", label = "Beruf:",
                                             choices = list(
-                                                           "Admin" = "admin",
+                                                           "Admin" = "admin.",
                                                            "Unbekannt" = "unknown",
                                                            "Arbeitslos" = "unemployed",
                                                            "Management" = "management",
@@ -255,11 +255,13 @@ ui <- fluidPage(
                                 ),
                          ),
                 fluidRow(
-                         titlePanel("Auskunft über den Kunden:"),
+                         titlePanel("Lohnt es sich den Kunden anzurufen?"),
+                         wellPanel(
                          splitLayout(cellWidths = c("15%", "85%"),
-                                     wellPanel(uiOutput("Prognose"), style = "padding: 100px; background: black; border-radius: 50%;"),
+                                     uiOutput("Prognose"),
                                      plotlyOutput("Verteilung")
-                         )
+                         ), style = "background: #565656"
+                        )
                 )
 )
 server <- function(input, output, session) {
@@ -272,7 +274,7 @@ server <- function(input, output, session) {
 })
     observeEvent(input$customer, {
 
-                     #customer 0 / default customer
+                     #customer
                      if (input$customer == "Kein Kunde"){
                          updateNumericInput(session, "age", value = cParams[["age"]])
                          updateSelectInput(session, "marital", selected = cParams[["marital"]])
@@ -355,10 +357,8 @@ server <- function(input, output, session) {
                 y_plot <- append(y_plot, exp(summary(model)$coefficients[X_plot[i], 1]))
             }
         }
-        list(x = X_plot, y = y_plot)
+        list(x = translate(X_plot), y = y_plot)
     })
-
-    plot_val_t <- plot_val %>% debounce(1000)
 
     output$Verteilung <- renderPlotly({
         p <- prognose()
@@ -368,12 +368,13 @@ server <- function(input, output, session) {
         } else {
             col <- 0
         }
-        fig <- plot_ly(x = translate(plot_val_t()$x), y = plot_val_t()$y, type = 'bar', name = 'Primary Product', marker = list(color = paste('hsl(', col, ',100%,50%)')))
+        fig <- plot_ly(x = plot_val()$x, y = plot_val()$y, type = 'bar', name = 'Primary Product', marker = list(color = paste('hsl(', col, ',100%,50%)')))
         fig <- fig %>% layout(xaxis = list(title = "", tickangle = -45),
                               yaxis = list(title = "Ausschlagskraft"),
                               margin = list(b = 100),
                               barmode = 'group'
         )
+        fig %>% toWebGL()
         fig
     })
     output$Prognose <- renderUI({
@@ -384,7 +385,8 @@ server <- function(input, output, session) {
         } else {
             col <- 0
         }
-        Prognose <- tags$h1(paste(round(prog, digits = 3), "%"), style = paste("color: hsl(", col, ",100%,50%);"))
+        Prognose <- tags$h2(paste(if(prog > 0.5) {"Ja, zu "} else {"Nein, zu "}, round(prog, digits = 2) * 100, "%." ), style = paste("color: hsl(", col, ",100%,50%);"))
+        
     })
 }
 shinyApp(ui, server)

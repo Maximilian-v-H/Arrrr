@@ -1,2 +1,2 @@
-# Arrrr
-Arrrr
+# Loan prediction app
+
